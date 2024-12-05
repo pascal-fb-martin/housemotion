@@ -1,0 +1,9 @@
+#!/bin/sh
+OPTS=
+HTTPOPTS=
+HOUSEOPTS=
+OTHEROPTS=
+if [ -e /etc/default/housemotion ] ; then . /etc/default/housemotion ; fi
+sv start houseportal || exit 1
+exec /usr/local/bin/housemotion $HTTPOPTS $HOUSEOPTS $OTHEROPTS $OPTS
+

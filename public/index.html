@@ -1,0 +1,133 @@
+<html>
+<head>
+<title>HouseMotion</title>
+<link rel=stylesheet type="text/css" href="/house.css" title="House">
+<script language="javascript" type="text/javascript">
+
+function friendlyTime (timestamp) {
+
+    var datetime = new Date(timestamp * 1000);
+    datetime = datetime.toLocaleString();;
+    if (datetime.indexOf(" GMT") > 0)
+        datetime = datetime.substr(0, datetime.indexOf(" GMT"));
+    return datetime;
+}
+
+function listCameras (data) {
+   var table = document.getElementsByClassName ('cameras')[0];
+
+   for (var i = table.childNodes.length - 1; i > 1; i--) {
+       table.removeChild(table.childNodes[i]);
+   }
+   for (var i = 0; i < data.cctv.feeds.length; i++) {
+   for (var name in data.cctv.feeds) {
+      var line = document.createElement("tr");
+      var url = data.cctv.feeds[name];
+
+      var column = document.createElement("td");
+      column.innerHTML = name;
+      line.appendChild(column);
+
+      column = document.createElement("td");
+      var link = document.createElement("a");
+      link.href = 'http://' + url + '/';
+      link.innerHTML = link.href;
+      column.appendChild(link);
+      line.appendChild(column);
+
+      column = document.createElement("td");
+      column.innerHTML = friendlyTime(feed.timestamp);
+      line.appendChild(column);
+
+      table.appendChild(line);
+   }
+}
+
+function listStorage (data) {
+   var table = document.getElementsByClassName ('storage')[0];
+
+   for (var i = table.childNodes.length - 1; i > 1; i--) {
+       table.removeChild(table.childNodes[i]);
+   }
+   var line = document.createElement("tr");
+
+   var column = document.createElement("td");
+   column.innerHTML = data.dvr.storage[i].path;
+   line.appendChild(column);
+
+   column = document.createElement("td");
+   column.innerHTML = data.cctv.total;
+   line.appendChild(column);
+
+   column = document.createElement("td");
+   column.innerHTML = data.cctv.used;
+   line.appendChild(column);
+
+   column = document.createElement("td");
+   column.innerHTML = data.cctv.available;
+   line.appendChild(column);
+
+   table.appendChild(line);
+}
+
+function showAll (data) {
+   listCameras(data);
+   listStorage(data);
+}
+
+function refreshMotion () {
+   var command = new XMLHttpRequest();
+   command.open("GET", "/cctv/status");
+   command.onreadystatechange = function () {
+      if (command.readyState === 4 && command.status === 200) {
+         var type = command.getResponseHeader("Content-Type");
+         showAll((JSON.parse(command.responseText)));
+      }
+   }
+   command.send(null);
+}
+
+window.onload = function() {
+    refreshMotion ();
+    setInterval (refreshMotion, 5000);
+};
+</script>
+</head>
+<body>
+   <table class="housetopcontainer">
+   <tr><td>
+   <table class="housetop">
+   <tr>
+   <td><span>Status</span></td>
+   <td><a href="/cctv/events.html">Events</a></td>
+   </tr>
+   </table>
+   </td></tr>
+   </table>
+   <center>
+   <p>
+   <h1>Cameras</h1>
+   <table class="housewidetable cameras" border="0">
+      <tr>
+         <th width="25%">CAMERA</th>
+         <th width="50%">URL</th>
+      </tr>
+   </table>
+   </p>
+   <br>
+   <br>
+   <p>
+   <h1>Storage</h1>
+   <table class="housewidetable storage" border="0">
+      <tr>
+         <th width="70%">VOLUME</th>
+         <th width="10%">SIZE</th>
+         <th width="10%">USED</th>
+         <th width="10%">AVAILABLE</th>
+      </tr>
+   </table>
+   </p>
+   </center>
+</body>
+</html>
+

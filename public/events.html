@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=stylesheet type="text/css" href="/house.css" title="House">
+<script src="/events.js"></script>
+<script>
+window.onload = function() {
+   eventStart('/cctv');
+}
+</script>
+<head>
+   <title></title>
+</head>
+<body>
+   <table class="housetopcontainer">
+   <tr><td>
+   <table class="housetop">
+   <tr>
+   <td><a href="/cctv/index.html">Status</a></td>
+   <td><span>Events</span></td>
+   </tr>
+   </table>
+   </td></tr>
+   </table>
+   <table class="housewidetable eventlist" border="0">
+      <tr>
+         <th width="15%">TIME</th>
+         <th width="10%">CATEGORY</th>
+         <th width="15%">NAME</th>
+         <th width="15%">ACTION</th>
+         <th width="45%">DESCRIPTION</th>
+      </tr>
+   </table>
+</body>
+</html>
+
