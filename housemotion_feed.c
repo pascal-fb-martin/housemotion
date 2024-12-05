@@ -54,7 +54,6 @@
 
 #include "housediscover.h"
 #include "houselog.h"
-#include "houselog_sensor.h"
 
 #include "housemotion_feed.h"
 
