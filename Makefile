@@ -20,7 +20,7 @@
 HAPP=housemotion
 HROOT=/usr/local
 SHARE=$(HROOT)/share/house
-STORE=/storage/motion/videos
+STORE=/videos
 
 # Application build. --------------------------------------------
 
