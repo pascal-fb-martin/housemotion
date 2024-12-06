@@ -122,14 +122,14 @@ static int housemotion_store_used (const struct statvfs *fs) {
 
 void housemotion_store_friendly (char *buffer, int size, long long value) {
 
-    if (value > 1024*1024*1024) {
+    if (value >= 1024*1024*1024) {
         snprintf (buffer, size, "%d.%01dGB",
-                  (int)(value / 1024*1024*1024),
+                  (int)(value / (1024*1024*1024)),
                   (int)((value % 1024*1024*1024) / 1024*1024*100));
-    } else if (value > 1024*1024) {
+    } else if (value >= 1024*1024) {
         snprintf (buffer, size, "%d.%01dMB",
-                  (int)(value / 1024*1024),
-                  (int)((value % 1024*1024) / 1024*100));
+                  (int)(value / (1024*1024)),
+                  (int)((value % 1024*1024) / (1024*100)));
     } else {
         snprintf (buffer, size, "%dKB", (int)(value / 1024));
     }
@@ -151,7 +151,7 @@ int housemotion_store_status (char *buffer, int size) {
     char ascii[64];
     housemotion_store_friendly (ascii, sizeof(ascii),
                                 housemotion_store_free (&storage));
-    cursor += snprintf (buffer+cursor, size-cursor, "\"available\":\"%s\"", ascii);
+    cursor += snprintf (buffer+cursor, size-cursor, ",\"available\":\"%s\"", ascii);
     if (cursor >= size) goto overflow;
     housemotion_store_friendly (ascii, sizeof(ascii),
                                 housemotion_store_total (&storage));
