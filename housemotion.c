@@ -135,7 +135,7 @@ int main (int argc, const char **argv) {
         use_houseportal = 1;
     }
     housediscover_initialize (argc, argv);
-    houselog_initialize ("dvr", argc, argv);
+    houselog_initialize ("cctv", argc, argv);
 
     echttp_cors_allow_method("GET");
     echttp_protect (0, housemotion_protect);

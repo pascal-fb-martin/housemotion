@@ -52,7 +52,6 @@
 #include <echttp.h>
 #include <echttp_json.h>
 
-#include "housediscover.h"
 #include "houselog.h"
 
 #include "housemotion_feed.h"
