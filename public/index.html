@@ -34,10 +34,6 @@ function listCameras (data) {
       column.appendChild(link);
       line.appendChild(column);
 
-      column = document.createElement("td");
-      column.innerHTML = friendlyTime(feed.timestamp);
-      line.appendChild(column);
-
       table.appendChild(line);
    }
 }
