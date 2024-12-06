@@ -148,7 +148,7 @@ int main (int argc, const char **argv) {
 
     echttp_background (&housemotion_background);
 
-    houselog_event ("SERVICE", "motion", "START", "ON %s", HostName);
+    houselog_event ("SERVICE", "cctv", "START", "ON %s", HostName);
     echttp_loop();
 }
 
