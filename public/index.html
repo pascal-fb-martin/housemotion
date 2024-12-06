@@ -65,6 +65,8 @@ function listStorage (data) {
 }
 
 function showAll (data) {
+   var title = response.host+' - CCTV Status';
+   document.getElementsByTagName ('title')[0].innerHTML = title;
    listCameras(data);
    listStorage(data);
 }
@@ -86,7 +88,7 @@ window.onload = function() {
     setInterval (refreshMotion, 5000);
 };
 </script>
-<title></title>
+<title>CCTV Status</title>
 </head>
 <body>
    <table class="housetopcontainer">
