@@ -78,7 +78,7 @@ static time_t LastConfigLoad = 0;
 static void housemotion_feed_replace (char **var, const char *value) {
     if (*var) free(*var);
     if (value) *var = strdup(value);
-    else *var = 0;
+    else       *var = 0;
 }
 
 static void housemotion_feed_add_camera (char *id, char *name) {
@@ -100,14 +100,13 @@ static void housemotion_feed_add_camera (char *id, char *name) {
 
 static void housemotion_feed_clear_camera (void) {
 
-    while (FeedsCount-- > 0) {
-        if (Feeds[FeedsCount].id)
-            housemotion_feed_replace (&(Feeds[FeedsCount].id), 0);
-        if (Feeds[FeedsCount].name)
-            housemotion_feed_replace (&(Feeds[FeedsCount].name), 0);
-        if (Feeds[FeedsCount].url)
-            housemotion_feed_replace (&(Feeds[FeedsCount].url), 0);
+    int i;
+    for (i = 0; i < FeedsCount; ++i) {
+        housemotion_feed_replace (&(Feeds[i].id), 0);
+        housemotion_feed_replace (&(Feeds[i].name), 0);
+        housemotion_feed_replace (&(Feeds[i].url), 0);
     }
+    FeedsCount = 0;
 }
 
 int housemotion_feed_status (char *buffer, int size) {
