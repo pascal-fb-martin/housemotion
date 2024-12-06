@@ -65,7 +65,7 @@ function listStorage (data) {
 }
 
 function showAll (data) {
-   var title = response.host+' - CCTV Status';
+   var title = data.host+' - CCTV Status';
    document.getElementsByTagName ('title')[0].innerHTML = title;
    listCameras(data);
    listStorage(data);
