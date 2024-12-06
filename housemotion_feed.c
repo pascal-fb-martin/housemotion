@@ -74,7 +74,7 @@ static char *HouseMotionControlPort = 0;
 static char *HouseMotionStreamPort = 0;
 
 static char HouseMotionHost[256];
-
+static time_t LastConfigLoad = 0;
 
 static void housemotion_feed_add_camera (char *id, char *name) {
 
@@ -137,7 +137,8 @@ overflow:
 
 static void housemotion_feed_replace (char **var, const char *value) {
     if (*var) free(*var);
-    *var = strdup(value);
+    if (value) *var = strdup(value);
+    else *var = 0;
 }
 
 static char *housemotion_feed_skipempty (char *data) {
@@ -233,6 +234,7 @@ static void housemotion_feed_read_configuration (void) {
     if (!HouseMotionStreamPort) HouseMotionStreamPort = strdup("8081");
 
     fclose(fd);
+    LastConfigLoad = time(0);
 }
 
 void housemotion_feed_initialize (int argc, const char **argv) {
@@ -247,8 +249,7 @@ void housemotion_feed_initialize (int argc, const char **argv) {
 
 static void housemotion_feed_scan_configuration (time_t now) {
 
-    static time_t LastScan = 0;
-    if (now < LastScan + 300) return;
+    if (now < LastConfigLoad + 300) return;
 
     // For now, re-read the configuration files.
     // TBD: use the Motion web API to get the live configuration.

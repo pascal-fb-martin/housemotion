@@ -154,9 +154,8 @@ int housemotion_store_status (char *buffer, int size) {
                                 housemotion_store_total (&storage));
     cursor += snprintf (buffer+cursor, size-cursor, ",\"total\":\"%s\"", ascii);
     if (cursor >= size) goto overflow;
-    housemotion_store_friendly (ascii, sizeof(ascii),
-                                housemotion_store_used (&storage));
-    cursor += snprintf (buffer+cursor, size-cursor, ",\"used\":\"%s\"", ascii);
+    cursor += snprintf (buffer+cursor, size-cursor, ",\"used\":\"%d%%\"",
+                        housemotion_store_used (&storage));
     if (cursor >= size) goto overflow;
 
     return cursor;
@@ -216,8 +215,8 @@ static void housemotion_store_delete (const char *parent) {
 void housemotion_store_background (time_t now) {
 
     static time_t lastcheck = 0;
-    static int lastday = 0;
 
     if (now < lastcheck + 60) return;
+    lastcheck = now;
 }
 

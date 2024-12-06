@@ -43,11 +43,11 @@ housemotion: $(OBJS)
 # Distribution agnostic file installation -----------------------
 
 install-ui:
-	mkdir -p $(SHARE)/public/motion
-	chmod 755 $(SHARE) $(SHARE)/public $(SHARE)/public/motion
-	cp public/* $(SHARE)/public/motion
-	chown root:root $(SHARE)/public/motion/*
-	chmod 644 $(SHARE)/public/motion/*
+	mkdir -p $(SHARE)/public/cctv
+	chmod 755 $(SHARE) $(SHARE)/public $(SHARE)/public/cctv
+	cp public/* $(SHARE)/public/cctv
+	chown root:root $(SHARE)/public/cctv/*
+	chmod 644 $(SHARE)/public/cctv/*
 
 install-app: install-ui
 	grep -q '^motion:' /etc/passwd || useradd -r motion -s /usr/sbin/nologin -d /var/lib/house

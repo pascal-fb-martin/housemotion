@@ -19,7 +19,6 @@ function listCameras (data) {
    for (var i = table.childNodes.length - 1; i > 1; i--) {
        table.removeChild(table.childNodes[i]);
    }
-   for (var i = 0; i < data.cctv.feeds.length; i++) {
    for (var name in data.cctv.feeds) {
       var line = document.createElement("tr");
       var url = data.cctv.feeds[name];
