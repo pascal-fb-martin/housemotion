@@ -243,8 +243,8 @@ void housemotion_feed_initialize (int argc, const char **argv) {
     for (i = 1; i < argc; ++i) {
         echttp_option_match ("-motion-conf=", argv[i], &HouseMotionConf);
     }
-    housemotion_feed_read_configuration ();
     gethostname (HouseMotionHost, sizeof(HouseMotionHost));
+    housemotion_feed_read_configuration ();
 }
 
 static void housemotion_feed_scan_configuration (time_t now) {
