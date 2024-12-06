@@ -145,10 +145,13 @@ int housemotion_store_status (char *buffer, int size) {
 
     if (statvfs (HouseMotionStorage, &storage)) return 0;
 
+    cursor += snprintf (buffer, size, "\"path\":\"%s\"", HouseMotionStorage);
+    if (cursor >= size) goto overflow;
+
     char ascii[64];
     housemotion_store_friendly (ascii, sizeof(ascii),
                                 housemotion_store_free (&storage));
-    cursor += snprintf (buffer, size, "\"available\":\"%s\"", ascii);
+    cursor += snprintf (buffer+cursor, size-cursor, "\"available\":\"%s\"", ascii);
     if (cursor >= size) goto overflow;
     housemotion_store_friendly (ascii, sizeof(ascii),
                                 housemotion_store_total (&storage));
