@@ -115,7 +115,8 @@ int housemotion_feed_status (char *buffer, int size) {
     int cursor = 0;
     const char *prefix = "";
 
-    cursor += snprintf (buffer+cursor, size-cursor, "\"console\":\"%s:%s\"",
+    cursor += snprintf (buffer+cursor, size-cursor,
+                        "\"console\":\"http://%s:%s/\"",
                         HouseMotionHost, HouseMotionControlPort);
     if (cursor >= size) goto overflow;
 
