@@ -76,6 +76,12 @@ static char *HouseMotionStreamPort = 0;
 static char HouseMotionHost[256];
 static time_t LastConfigLoad = 0;
 
+static void housemotion_feed_replace (char **var, const char *value) {
+    if (*var) free(*var);
+    if (value) *var = strdup(value);
+    else *var = 0;
+}
+
 static void housemotion_feed_add_camera (char *id, char *name) {
 
     if (FeedsCount >= FeedsSize) {
@@ -96,9 +102,12 @@ static void housemotion_feed_add_camera (char *id, char *name) {
 static void housemotion_feed_clear_camera (void) {
 
     while (FeedsCount-- > 0) {
-        if (Feeds[FeedsCount].id) free(Feeds[FeedsCount].id);
-        if (Feeds[FeedsCount].name) free(Feeds[FeedsCount].name);
-        if (Feeds[FeedsCount].url) free(Feeds[FeedsCount].url);
+        if (Feeds[FeedsCount].id)
+            housemotion_feed_replace (&(Feeds[FeedsCount].id), 0);
+        if (Feeds[FeedsCount].name)
+            housemotion_feed_replace (&(Feeds[FeedsCount].name), 0);
+        if (Feeds[FeedsCount].url)
+            housemotion_feed_replace (&(Feeds[FeedsCount].url), 0);
     }
 }
 
@@ -133,12 +142,6 @@ overflow:
     echttp_error (413, "Payload too large");
     buffer[0] = 0;
     return 0;
-}
-
-static void housemotion_feed_replace (char **var, const char *value) {
-    if (*var) free(*var);
-    if (value) *var = strdup(value);
-    else *var = 0;
 }
 
 static char *housemotion_feed_skipempty (char *data) {
@@ -258,10 +261,6 @@ static void housemotion_feed_scan_configuration (time_t now) {
 }
 
 void housemotion_feed_background (time_t now) {
-
-    static time_t LatestPoll = 0;
-
-    if (now < LatestPoll + 60) return;
 
     housemotion_feed_scan_configuration (now);
 }
