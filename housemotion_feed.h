@@ -21,6 +21,7 @@
  * housemotion_feed.h - Handle the list of cameras managed by the local motion
  */
 void housemotion_feed_initialize (int argc, const char **argv);
+long long housemotion_feed_check (void);
 int  housemotion_feed_status (char *buffer, int size);
 void housemotion_feed_background (time_t now);
 

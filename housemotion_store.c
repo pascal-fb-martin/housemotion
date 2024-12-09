@@ -29,9 +29,20 @@
  *
  *    Initialize this module.
  *
+ * void housemotion_store_location (const char *directory);
+ *
+ *    Set the location of the Motion recording files, i.e. the directory
+ *    where Motion stores them. This may be called multiple times if the
+ *    Motion configuration is changed..
+ *
  * void housemotion_store_background (time_t now);
  *
  *    The periodic function that manages the video storage.
+ *
+ * long long housemotion_store_check (void);
+ *
+ *    Return a timestamp value. Any increase to that value indicates that
+ *    some data reported in status may have changed.
  *
  * int housemotion_store_status (char *buffer, int size);
  *
@@ -61,25 +72,13 @@
 
 static int HouseMotionMaxSpace = 0; // Default is no automatic cleanup.
 
-static const char *HouseMotionStorage = "/videos";
+static char *HouseMotionStorage = 0;
+static time_t HouseMotionChanged = 0;
 
-
-static void housemotion_store_schedule (const char *path) {
-}
 
 static const char *housemotion_store_event (const char *method, const char *uri,
                                             const char *data, int length) {
-    const char *name = echttp_parameter_get("name");
-    // Loop to find each file matching this event name.
-    // TBD
-    return 0;
-}
-
-static const char *housemotion_store_file (const char *method, const char *uri,
-                                           const char *data, int length) {
-
-    const char *path = echttp_parameter_get("path");
-    if (path) housemotion_store_schedule (path);
+    HouseMotionChanged = time(0);
     return 0;
 }
 
@@ -89,14 +88,12 @@ void housemotion_store_initialize (int argc, const char **argv) {
     const char *max = 0;
 
     for (i = 1; i < argc; ++i) {
-        echttp_option_match ("-motion-store=", argv[i], &HouseMotionStorage);
         echttp_option_match ("-motion-clean=", argv[i], &max);
     }
     if (max) {
         HouseMotionMaxSpace = atoi(max);
     }
     echttp_route_uri ("/cctv/motion/event", housemotion_store_event);
-    echttp_route_uri ("/cctv/motion/file", housemotion_store_file);
 }
 
 // Calculate storage space information (total, free, %used).
@@ -135,6 +132,63 @@ void housemotion_store_friendly (char *buffer, int size, long long value) {
     }
 }
 
+long long housemotion_store_check (void) {
+    if (!HouseMotionChanged) HouseMotionChanged = time(0);
+    return (long long)HouseMotionChanged * 1000;
+}
+
+int housemotion_store_status_recurse (char *buffer, int size,
+                                      const char *d, const char *sep) {
+
+    int cursor = 0;
+    char path[1024];
+
+    if (d)
+        snprintf (path, sizeof(path), "%s/%s", HouseMotionStorage, d);
+    else
+        snprintf (path, sizeof(path), "%s", HouseMotionStorage);
+
+    DIR *dir = opendir (path);
+    if (dir) {
+        struct dirent *p;
+        for (p = readdir(dir); p; p = readdir(dir)) {
+            int saved = cursor;
+            if (p->d_name[0] == '.') continue;
+            if (p->d_type == DT_REG) {
+                struct stat filestat;
+                if (d)
+                    snprintf (path, sizeof(path), "%s/%s", d, p->d_name);
+                else
+                    snprintf (path, sizeof(path), "%s", p->d_name);
+
+                if (stat (path, &filestat)) continue; // Cannot access, skip.
+
+                cursor += snprintf (buffer+cursor, size-cursor,
+                                    "%s[%lld,\"%s\"]",
+                                    (long long)(filestat.st_mtime), path);
+                if (cursor >= size) {
+                    closedir (dir);
+                    return saved;
+                }
+                sep = ",";
+            } else if (p->d_type == DT_DIR) {
+                if (d) {
+                    char path[1024];
+                    snprintf (path, sizeof(path), "%s/%s", d, p->d_name);
+                    cursor += housemotion_store_status_recurse
+                                  (buffer+cursor, size-cursor, path, sep);
+                } else {
+                    cursor += housemotion_store_status_recurse
+                                  (buffer+cursor, size-cursor, p->d_name, sep);
+                }
+            }
+            if (cursor > saved) sep = ",";
+        }
+        closedir (dir);
+    }
+    return cursor;
+}
+
 int housemotion_store_status (char *buffer, int size) {
 
     int i;
@@ -142,6 +196,8 @@ int housemotion_store_status (char *buffer, int size) {
     const char *prefix = "";
 
     struct statvfs storage;
+
+    if (!HouseMotionStorage) return 0;
 
     if (statvfs (HouseMotionStorage, &storage)) return 0;
 
@@ -161,6 +217,10 @@ int housemotion_store_status (char *buffer, int size) {
                         housemotion_store_used (&storage));
     if (cursor >= size) goto overflow;
 
+    cursor += snprintf (buffer+cursor, size-cursor, ",\"recordings\":[");
+    cursor += housemotion_store_status_recurse (buffer+cursor, size-cursor, 0, "");
+    cursor += snprintf (buffer+cursor, size-cursor, "]");
+
     return cursor;
 
 overflow:
@@ -169,57 +229,82 @@ overflow:
     return 0;
 }
 
-static int housemotion_store_oldest (const char *parent) {
+struct filetrack {
+    time_t modified;
+    char path[1024];
+};
 
-    int oldest = 9999;
-
-    DIR *dir = opendir (parent);
-    if (!dir) return 0;
-
-    struct dirent *p = readdir(dir);
-    while (p) {
-        if ((p->d_type == DT_DIR) && (isdigit(p->d_name[0]))) {
-            const char *name = p->d_name;
-            int i = atoi ((name[0] == '0')?name+1:name);
-            if (i < oldest) oldest = i;
-        }
-        p = readdir(dir);
-    }
-    closedir (dir);
-    if (oldest == 9999) return 0; // Found nothing.
-    return oldest;
-}
-
-static void housemotion_store_delete (const char *parent) {
+void housemotion_store_oldest (struct filetrack *oldest, const char *parent) {
 
     char path[1024];
-    int oldest = 9999;
-
-    DEBUG ("delete %s\n", parent);
+    struct dirent *p;
     DIR *dir = opendir (parent);
-    if (dir) {
-        for (;;) {
-            struct dirent *p = readdir(dir);
-            if (!p) break;
-            if (!strcmp(p->d_name, ".")) continue;
-            if (!strcmp(p->d_name, "..")) continue;
-            snprintf (path, sizeof(path), "%s/%s", parent, p->d_name);
-            if (p->d_type == DT_DIR) {
-                housemotion_store_delete (path);
-            } else {
-                unlink (path);
+    if (!dir) return;
+
+    for (p = readdir(dir); p; p = readdir(dir)) {
+        if (p->d_name[0] == '.') continue;
+        snprintf (path, sizeof(path), "%s/%s", parent, p->d_name);
+        if (p->d_type == DT_REG) {
+            struct stat filestat;
+            if (stat (path, &filestat)) continue; // Cannot access, skip.
+
+            if (filestat.st_mtime < oldest->modified) {
+                snprintf (oldest->path, sizeof(oldest->path), "%s", path);
+                oldest->modified = filestat.st_mtime;
             }
+        } else if (p->d_type == DT_DIR) {
+            housemotion_store_oldest (oldest, path);
         }
-        closedir (dir);
     }
-    rmdir (parent);
+    closedir (dir);
+}
+
+static void housemotion_store_cleanup (time_t now) {
+
+    static time_t LastStorageCheck = 0;
+
+    if (!HouseMotionStorage) return;
+    if (now < LastStorageCheck + 10) return; // Check storage space every 10s.
+
+    struct statvfs storage;
+    if (statvfs (HouseMotionStorage, &storage)) return ;
+    if (housemotion_store_used (&storage) < HouseMotionMaxSpace)  return;
+
+    // Delete the oldest file.
+    //
+    struct filetrack oldest;
+    oldest.modified = now + 60;
+    oldest.path[0] = 0;
+    housemotion_store_oldest (&oldest, HouseMotionStorage);
+    if (oldest.modified < now) {
+        unlink (oldest.path); // Delete that oldest file.
+        char *s = strrchr (oldest.path, '/');
+        if (s) {
+            *s = 0;
+            rmdir (oldest.path); // Nothing done if the directory is not empty.
+        }
+    }
+}
+
+void housemotion_store_location (const char *directory) {
+
+    char *existing = HouseMotionStorage;
+    if (existing && (!strcmp(existing, directory))) return; // No change.
+
+    HouseMotionStorage = strdup (directory);
+    echttp_static_route ("/cctv/recording", HouseMotionStorage);
+    if (existing) free (existing);
+
+    HouseMotionChanged = time(0);
 }
 
 void housemotion_store_background (time_t now) {
 
     static time_t lastcheck = 0;
 
-    if (now < lastcheck + 60) return;
+    if (now <= lastcheck) return;
     lastcheck = now;
+
+    housemotion_store_cleanup (now);
 }
 

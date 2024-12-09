@@ -68,15 +68,29 @@ static int use_houseportal = 0;
 static char HostName[256];
 
 
+static const char *housemotion_check (const char *method, const char *uri,
+                                      const char *data, int length) {
+    static char buffer[128];
+
+    long long timestamp1 = housemotion_feed_check ();
+    long long timestamp2 = housemotion_store_check ();
+
+    snprintf (buffer, sizeof(buffer),
+              "{\"host\":\"%s\",\"timestamp\":%ld,\"updated\":%lld}",
+              HostName, (long)time(0),
+              (timestamp1 > timestamp2)?timestamp1:timestamp2);
+    return buffer;
+}
+
 static const char *housemotion_status (const char *method, const char *uri,
                                        const char *data, int length) {
     static char buffer[65537];
     int cursor = 0;
 
     cursor += snprintf (buffer, sizeof(buffer),
-                        "{\"host\":\"%s\",\"proxy\":\"%s\",\"timestamp\":%d,"
+                        "{\"host\":\"%s\",\"proxy\":\"%s\",\"timestamp\":%lld,"
                             "\"cctv\":{",
-                        HostName, houseportal_server(), (long)time(0));
+                        HostName, houseportal_server(), (long long)time(0));
 
     cursor += housemotion_feed_status (buffer+cursor, sizeof(buffer)-cursor);
     cursor += snprintf (buffer+cursor, sizeof(buffer)-cursor, ",");
@@ -143,6 +157,7 @@ int main (int argc, const char **argv) {
     housemotion_feed_initialize (argc, argv);
     housemotion_store_initialize (argc, argv);
 
+    echttp_route_uri ("/cctv/check", housemotion_check);
     echttp_route_uri ("/cctv/status", housemotion_status);
     echttp_static_route ("/", "/usr/local/share/house/public");
 

@@ -32,6 +32,11 @@
  *
  *    Initialize this module.
  *
+ * long long housemotion_feed_check (void);
+ *
+ *    Return a timestamp value. Any increase to that value indicates that
+ *    some data reported in status may have changed.
+ *
  * int housemotion_feed_status (char *buffer, int size);
  *
  *    Return a JSON string that represents the status of the known feeds.
@@ -55,6 +60,7 @@
 #include "houselog.h"
 
 #include "housemotion_feed.h"
+#include "housemotion_store.h"
 
 #define DEBUG if (echttp_isdebug()) printf
 
@@ -107,6 +113,13 @@ static void housemotion_feed_clear_camera (void) {
         housemotion_feed_replace (&(Feeds[i].url), 0);
     }
     FeedsCount = 0;
+}
+
+long long housemotion_feed_check (void) {
+    // For now, claim that everything has changed each time the Motion
+    // configuration was scanned again.
+    //
+    return (long long)LastConfigLoad * 1000;
 }
 
 int housemotion_feed_status (char *buffer, int size) {
@@ -216,6 +229,13 @@ static void housemotion_feed_read_configuration (void) {
         data = housemotion_feed_skipempty (data);
         if (!data) continue;
 
+        // Lower the overhead of checking for every token on every line:
+        // skip this line if its first character does not match any of
+        // the first characters of the tokens that we care for.
+        // DO NOT FORGET TO UPDATE THAT LIST IF TOKENS ARE ADDED BELOW.
+        //
+        if (!strchr ("cwst", data[0])) continue;
+
         char *value = housemotion_feed_get_value ("camera", data);
         if (value) {
             housemotion_feed_read_camera (value);
@@ -231,11 +251,17 @@ static void housemotion_feed_read_configuration (void) {
             housemotion_feed_replace (&HouseMotionStreamPort, value);
             continue;
         }
+        value = housemotion_feed_get_value ("target_dir", data);
+        if (value) {
+            housemotion_store_location (value);
+            continue;
+        }
     }
+    fclose(fd);
+
     if (!HouseMotionControlPort) HouseMotionControlPort = strdup("8080");
     if (!HouseMotionStreamPort) HouseMotionStreamPort = strdup("8081");
 
-    fclose(fd);
     LastConfigLoad = time(0);
 }
 

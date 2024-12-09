@@ -21,6 +21,9 @@
  * housemotion_store.h - Access the videos and image files stored by Motion.
  */
 void housemotion_store_initialize (int argc, const char **argv);
+void housemotion_store_location (const char *directory);
+
+long long housemotion_store_check (void);
 void housemotion_store_background (time_t now);
 int  housemotion_store_status (char *buffer, int size);
 
