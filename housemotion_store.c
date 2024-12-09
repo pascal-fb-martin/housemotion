@@ -138,51 +138,45 @@ long long housemotion_store_check (void) {
 }
 
 int housemotion_store_status_recurse (char *buffer, int size,
-                                      const char *d, const char *sep) {
+                                      char *path, int psize, const char *sep) {
 
     int cursor = 0;
-    char path[1024];
-
-    if (d)
-        snprintf (path, sizeof(path), "%s/%s", HouseMotionStorage, d);
-    else
-        snprintf (path, sizeof(path), "%s", HouseMotionStorage);
 
     DIR *dir = opendir (path);
     if (dir) {
+        int offset = strlen(path);
+        char *base = path + offset;
+        *(base++) = '/';
+        int basesize = psize - offset - 1;
+        char *relative = path + strlen(HouseMotionStorage) + 1;
+
         struct dirent *p;
         for (p = readdir(dir); p; p = readdir(dir)) {
             int saved = cursor;
             if (p->d_name[0] == '.') continue;
+            snprintf (base, basesize, "%s", p->d_name);
             if (p->d_type == DT_REG) {
                 struct stat filestat;
-                if (d)
-                    snprintf (path, sizeof(path), "%s/%s", d, p->d_name);
-                else
-                    snprintf (path, sizeof(path), "%s", p->d_name);
-
                 if (stat (path, &filestat)) continue; // Cannot access, skip.
 
+                char ascii[64];
+                housemotion_store_friendly
+                    (ascii, sizeof(ascii), (long long)(filestat.st_size));
                 cursor += snprintf (buffer+cursor, size-cursor,
-                                    "%s[%lld,\"%s\"]",
-                                    (long long)(filestat.st_mtime), path);
+                                    "%s[%lld,\"%s\",\"%s\"]",
+                                    sep,
+                                    (long long)(filestat.st_mtime),
+                                    relative,
+                                    ascii);
                 if (cursor >= size) {
                     closedir (dir);
                     return saved;
                 }
-                sep = ",";
             } else if (p->d_type == DT_DIR) {
-                if (d) {
-                    char path[1024];
-                    snprintf (path, sizeof(path), "%s/%s", d, p->d_name);
-                    cursor += housemotion_store_status_recurse
-                                  (buffer+cursor, size-cursor, path, sep);
-                } else {
-                    cursor += housemotion_store_status_recurse
-                                  (buffer+cursor, size-cursor, p->d_name, sep);
-                }
+                cursor += housemotion_store_status_recurse
+                             (buffer+cursor, size-cursor, path, psize, sep);
             }
-            if (cursor > saved) sep = ",";
+            if (cursor > 0) sep = ",";
         }
         closedir (dir);
     }
@@ -218,7 +212,10 @@ int housemotion_store_status (char *buffer, int size) {
     if (cursor >= size) goto overflow;
 
     cursor += snprintf (buffer+cursor, size-cursor, ",\"recordings\":[");
-    cursor += housemotion_store_status_recurse (buffer+cursor, size-cursor, 0, "");
+    char path[1024];
+    snprintf (path, sizeof(path), "%s", HouseMotionStorage);
+    cursor += housemotion_store_status_recurse
+                  (buffer+cursor, size-cursor, path, sizeof(path), "");
     cursor += snprintf (buffer+cursor, size-cursor, "]");
 
     return cursor;
@@ -264,6 +261,7 @@ static void housemotion_store_cleanup (time_t now) {
     static time_t LastStorageCheck = 0;
 
     if (!HouseMotionStorage) return;
+    if (!HouseMotionMaxSpace) return;
     if (now < LastStorageCheck + 10) return; // Check storage space every 10s.
 
     struct statvfs storage;

@@ -7,8 +7,8 @@ function friendlyTime (timestamp) {
 
     var datetime = new Date(timestamp * 1000);
     datetime = datetime.toLocaleString();;
-    if (datetime.indexOf(" GMT") > 0)
-        datetime = datetime.substr(0, datetime.indexOf(" GMT"));
+    var index = datetime.indexOf(" GMT");
+    if (index > 0) datetime = datetime.substr(0, index);
     return datetime;
 }
 
@@ -64,11 +64,44 @@ function listStorage (data) {
    table.appendChild(line);
 }
 
+function listRecordings (data) {
+   var table = document.getElementsByClassName ('recordings')[0];
+
+   for (var i = table.childNodes.length - 1; i > 1; i--) {
+       table.removeChild(table.childNodes[i]);
+   }
+   if (! data.cctv.recordings) return;
+
+   data.cctv.recordings.sort (function (a, b) {
+           return a[0] - b[0];
+   });
+
+   for (var i = 0; i < data.cctv.recordings.length; ++i) {
+      var item = data.cctv.recordings[i];
+      var line = document.createElement("tr");
+
+      column = document.createElement("td");
+      column.innerHTML = friendlyTime (item[0]);
+      line.appendChild(column);
+
+      var column = document.createElement("td");
+      column.innerHTML = item[1];
+      line.appendChild(column);
+
+      var column = document.createElement("td");
+      column.innerHTML = item[2];
+      line.appendChild(column);
+
+      table.appendChild(line);
+   }
+}
+
 function showAll (data) {
    var title = data.host+' - CCTV Status';
    document.getElementsByTagName ('title')[0].innerHTML = title;
    listCameras(data);
    listStorage(data);
+   listRecordings(data);
 }
 
 function refreshMotion () {
@@ -121,6 +154,18 @@ window.onload = function() {
          <th width="10%">SIZE</th>
          <th width="10%">USED</th>
          <th width="10%">AVAILABLE</th>
+      </tr>
+   </table>
+   </p>
+   <br>
+   <br>
+   <p>
+   <h1>Recordings</h1>
+   <table class="housewidetable recordings" border="0">
+      <tr>
+         <th width="20%">TIMESTAMP</th>
+         <th width="70%">NAME</th>
+         <th width="10%">SIZE</th>
       </tr>
    </table>
    </p>
