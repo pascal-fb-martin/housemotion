@@ -96,12 +96,47 @@ function listRecordings (data) {
    }
 }
 
+function listMetrics (data) {
+   var table = document.getElementsByClassName ('metrics')[0];
+
+   for (var i = table.childNodes.length - 1; i > 0; i--) {
+       table.removeChild(table.childNodes[i]);
+   }
+   if (data.cctv.metrics.length == 0) return;
+
+   var head = data.cctv.metrics[0];
+   var headline = document.createElement("tr");
+   for (var name in head) {
+      var column = document.createElement("th");
+      column.innerHTML = name.toUpperCase();
+      headline.appendChild(column);
+   }
+   table.appendChild(headline);
+
+   for (var i = 0; i < data.cctv.metrics.length; ++i) {
+       var metrics = data.cctv.metrics[i];
+       var line = document.createElement("tr");
+       for (var name in metrics) {
+          var value = metrics[name];
+
+          var column = document.createElement("td");
+          if (name === 'time')
+              column.innerHTML = friendlyTime(value);
+          else
+              column.innerHTML = '' + value;
+          line.appendChild(column);
+       }
+       table.appendChild(line);
+   }
+}
+
 function showAll (data) {
    var title = data.host+' - CCTV Status';
    document.getElementsByTagName ('title')[0].innerHTML = title;
    listCameras(data);
    listStorage(data);
    listRecordings(data);
+   listMetrics(data);
 }
 
 function refreshMotion () {
@@ -167,6 +202,13 @@ window.onload = function() {
          <th width="70%">NAME</th>
          <th width="10%">SIZE</th>
       </tr>
+   </table>
+   </p>
+   <br>
+   <br>
+   <p>
+   <h1>Metrics</h1>
+   <table class="housewidetable metrics" border="0">
    </table>
    </p>
    </center>

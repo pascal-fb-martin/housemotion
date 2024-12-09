@@ -75,6 +75,15 @@ static int HouseMotionMaxSpace = 0; // Default is no automatic cleanup.
 static char *HouseMotionStorage = 0;
 static time_t HouseMotionChanged = 0;
 
+struct HouseMotionMetrics {
+    time_t timestamp;
+    long long storage_available;
+    long long memory_available;
+};
+
+#define MOTION_METRICS_SPAN 30
+static struct HouseMotionMetrics HouseMotionMetricsLatest[MOTION_METRICS_SPAN];
+
 
 static const char *housemotion_store_event (const char *method, const char *uri,
                                             const char *data, int length) {
@@ -183,9 +192,34 @@ int housemotion_store_status_recurse (char *buffer, int size,
     return cursor;
 }
 
-int housemotion_store_status (char *buffer, int size) {
+static int housemotion_store_status_metrics (char *buffer, int size) {
 
     int i;
+    int cursor = 0;
+    const char *sep = "";
+    int start = (time(0) / 10) % MOTION_METRICS_SPAN;
+
+    for (i = start + 1; i != start; ++i) {
+        if (i >= MOTION_METRICS_SPAN) {
+            i = 0;
+            if (start == 0) break;
+        }
+        struct HouseMotionMetrics *metrics = HouseMotionMetricsLatest + i;
+        if (! metrics->timestamp) continue;
+
+        int saved = cursor;
+        cursor += snprintf (buffer+cursor, size-cursor,
+                     "%s{\"time\":%lld,\"memavailable\":%lld,\"storageavailable\":%lld}",
+                     sep, (long long)metrics->timestamp,
+                     metrics->memory_available, metrics->storage_available);
+        if (cursor >= size) return saved;
+        sep = ",";
+    }
+    return cursor;
+}
+
+int housemotion_store_status (char *buffer, int size) {
+
     int cursor = 0;
     const char *prefix = "";
 
@@ -212,10 +246,16 @@ int housemotion_store_status (char *buffer, int size) {
     if (cursor >= size) goto overflow;
 
     cursor += snprintf (buffer+cursor, size-cursor, ",\"recordings\":[");
+    if (cursor >= size) goto overflow;
     char path[1024];
     snprintf (path, sizeof(path), "%s", HouseMotionStorage);
     cursor += housemotion_store_status_recurse
                   (buffer+cursor, size-cursor, path, sizeof(path), "");
+    cursor += snprintf (buffer+cursor, size-cursor, "]");
+
+    cursor += snprintf (buffer+cursor, size-cursor, ",\"metrics\":[");
+    if (cursor >= size) goto overflow;
+    cursor += housemotion_store_status_metrics (buffer+cursor, size-cursor);
     cursor += snprintf (buffer+cursor, size-cursor, "]");
 
     return cursor;
@@ -258,16 +298,6 @@ void housemotion_store_oldest (struct filetrack *oldest, const char *parent) {
 
 static void housemotion_store_cleanup (time_t now) {
 
-    static time_t LastStorageCheck = 0;
-
-    if (!HouseMotionStorage) return;
-    if (!HouseMotionMaxSpace) return;
-    if (now < LastStorageCheck + 10) return; // Check storage space every 10s.
-
-    struct statvfs storage;
-    if (statvfs (HouseMotionStorage, &storage)) return ;
-    if (housemotion_store_used (&storage) < HouseMotionMaxSpace)  return;
-
     // Delete the oldest file.
     //
     struct filetrack oldest;
@@ -282,6 +312,55 @@ static void housemotion_store_cleanup (time_t now) {
             rmdir (oldest.path); // Nothing done if the directory is not empty.
         }
     }
+}
+
+static void housemotion_store_meminfo (struct HouseMotionMetrics *metrics) {
+
+    // First reset all the metrics, in case these are not accessible;
+    metrics->memory_available = 0;
+
+    char buffer[80];
+    FILE *f = fopen ("/proc/meminfo", "r");
+    if (!f) return;
+
+    while (!feof (f)) {
+        char *line = fgets (buffer, sizeof(buffer), f);
+        if (!line) break;
+
+        char *sep = strchr (line, ':');
+        if (!sep) continue;
+        *sep = 0;
+
+        if (!strcmp (line, "MemAvailable")) {
+            metrics->memory_available = atoll (sep+1) * 1024; // kB unit.
+            continue;
+        }
+    }
+    fclose (f);
+}
+
+static void housemotion_store_metrics (time_t now) {
+
+    static time_t LastStorageCheck = 0;
+    static time_t NextSensorFlush = 0;
+
+    if (!HouseMotionStorage) return;
+    if (now < LastStorageCheck + 10) return; // Check storage space every 10s.
+
+    struct statvfs storage;
+    if (statvfs (HouseMotionStorage, &storage)) return ;
+
+    int index = (now / 10) % MOTION_METRICS_SPAN;
+
+    HouseMotionMetricsLatest[index].timestamp = now;
+    HouseMotionMetricsLatest[index].storage_available =
+        housemotion_store_free (&storage);
+
+    housemotion_store_meminfo (HouseMotionMetricsLatest+index);
+
+    if ((HouseMotionMaxSpace > 0) &&
+        (housemotion_store_used (&storage) >= HouseMotionMaxSpace))
+        housemotion_store_cleanup (now);
 }
 
 void housemotion_store_location (const char *directory) {
@@ -303,6 +382,6 @@ void housemotion_store_background (time_t now) {
     if (now <= lastcheck) return;
     lastcheck = now;
 
-    housemotion_store_cleanup (now);
+    housemotion_store_metrics (now);
 }
 
