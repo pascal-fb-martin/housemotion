@@ -87,6 +87,12 @@ static struct HouseMotionMetrics HouseMotionMetricsLatest[MOTION_METRICS_SPAN];
 
 static const char *housemotion_store_event (const char *method, const char *uri,
                                             const char *data, int length) {
+    const char *file = echttp_parameter_get ("file");
+    const char *event = echttp_parameter_get ("event");
+    if (file)
+        houselog_event ("DETECTION", "cctv", "FILE", "%s", file);
+    else if (event)
+        houselog_event ("DETECTION", "cctv", "EVENT", "%s", event);
     HouseMotionChanged = time(0);
     return 0;
 }
