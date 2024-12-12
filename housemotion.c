@@ -68,17 +68,19 @@ static int use_houseportal = 0;
 static char HostName[256];
 
 
+static long long housemotion_update (void) {
+    long long timestamp1 = housemotion_feed_check ();
+    long long timestamp2 = housemotion_store_check ();
+    return (timestamp1 > timestamp2)?timestamp1:timestamp2;
+}
+
 static const char *housemotion_check (const char *method, const char *uri,
                                       const char *data, int length) {
     static char buffer[128];
 
-    long long timestamp1 = housemotion_feed_check ();
-    long long timestamp2 = housemotion_store_check ();
-
     snprintf (buffer, sizeof(buffer),
               "{\"host\":\"%s\",\"timestamp\":%ld,\"updated\":%lld}",
-              HostName, (long)time(0),
-              (timestamp1 > timestamp2)?timestamp1:timestamp2);
+              HostName, (long)time(0), housemotion_update());
     return buffer;
 }
 
@@ -88,9 +90,10 @@ static const char *housemotion_status (const char *method, const char *uri,
     int cursor = 0;
 
     cursor += snprintf (buffer, sizeof(buffer),
-                        "{\"host\":\"%s\",\"proxy\":\"%s\",\"timestamp\":%lld,"
-                            "\"cctv\":{",
-                        HostName, houseportal_server(), (long long)time(0));
+                        "{\"host\":\"%s\",\"proxy\":\"%s\","
+                            "\"timestamp\":%lld,\"updated\":%lld,\"cctv\":{",
+                        HostName, houseportal_server(),
+                            (long long)time(0), housemotion_update());
 
     cursor += housemotion_feed_status (buffer+cursor, sizeof(buffer)-cursor);
     cursor += snprintf (buffer+cursor, sizeof(buffer)-cursor, ",");
