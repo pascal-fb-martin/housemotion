@@ -174,15 +174,12 @@ int housemotion_store_status_recurse (char *buffer, int size,
                 struct stat filestat;
                 if (stat (path, &filestat)) continue; // Cannot access, skip.
 
-                char ascii[64];
-                housemotion_store_friendly
-                    (ascii, sizeof(ascii), (long long)(filestat.st_size));
                 cursor += snprintf (buffer+cursor, size-cursor,
-                                    "%s[%lld,\"%s\",\"%s\"]",
+                                    "%s[%lld,\"%s\",%lld]",
                                     sep,
                                     (long long)(filestat.st_mtime),
                                     relative,
-                                    ascii);
+                                    (long long)(filestat.st_size));
                 if (cursor >= size) {
                     closedir (dir);
                     return saved;

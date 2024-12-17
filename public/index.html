@@ -12,6 +12,24 @@ function friendlyTime (timestamp) {
     return datetime;
 }
 
+function friendlySize (size) {
+      var unit = 'B';
+
+      if (size > 1024) {
+         size = Math.round(size / 1024);
+         unit = 'K';
+         if (size > 1024) {
+             size = Math.round(size / 1024);
+             unit = 'M';
+             if (size > 1024) {
+                size = Math.round(size / 1024);
+                unit = 'G';
+             }
+         }
+      }
+      return size + ' ' + unit;
+}
+
 function listCameras (data) {
    var table = document.getElementsByClassName ('cameras')[0];
 
@@ -89,7 +107,7 @@ function listRecordings (data) {
       line.appendChild(column);
 
       var column = document.createElement("td");
-      column.innerHTML = item[2];
+      column.innerHTML = friendlySize(item[2]);
       line.appendChild(column);
 
       table.appendChild(line);
