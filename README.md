@@ -15,25 +15,76 @@ The HouseMotion service implements the CCTV web API (with additional Motion exte
 
 This service also provides an housekeeping function: if the local storage gets too full, the oldest recording files will be deleted. This approach provides enough time for multiple DVR services to upload the recordings before they disappear.
 
+## Command line options
+
+The housemotion service accepts all standard echttp and HousePortal options, plus the following:
+* --motion-conf=FILE: the full path to the Motion configuration file.
+* --motion-clean=INTEGER: the storage usage limit (percentage) that triggers a cleanup (removal of oldest recording files).
+
 ## Web API
 
 ```
-/cctv/check
+GET /cctv/check
 ```
-Return a millisecond timestamp representing when the last change to any reported data has occurred. This method allows for a low overhead periodic polling of the service. The client should not use the returned timestamp for anything else than comparing it with a previous returned value. If the timestamp value has changed, regardless how, the client should query the repository content again.
+
+This endpoint is a low overhead method for polling for changes. The returned content is a JSON object defined as follows:
+* host: the name of the server running this service.
+* proxy: the name of the server used for redirection (typically the same as host).
+* timestamp: the time of the request/response.
+* updated: a 64 bit number that changes when the status has changed.
 
 ```
-/cctv/status
+GET /cctv/status
 ```
-Reports the current Motion configuration and local storage space status, in JSON. This status lists both all cameras locally handled by Motion and all recording files currently stored on that feed server.
+This endpoint returns a complete status of the service, as a JSON object defined as follows:
+* host: the name of the server running this service.
+* proxy: the name of the server used for redirection (typically the same as host).
+* timestamp: the time of the request/response.
+* updated: a 64 bit number that changes when the status has changed.
+* cctv.console: the URL to access the web UI of the motion detection software.
+* cctv.feeds: a JSON object where each item is the ID of a camera and the item's value is the URL to access the live video from that camera.
+* cctv.available: a string representing the space currently available in the local volume that hosts recordings.
+* cctv.total:  string representing the size of the local volume that hosts recordings.
+* cctv.used: a string representing the percentage of space used in the local volume that hosts recordings.
+* cctv.recordings: an array that lists all recording files currently available. Each file is described using an array: timestamp, relative path, size.
+* cctv.metrics: an array that represents a short term history of the available space in RAM and in memory. This is typically used to troubleshoot local storage issues.
+
+This status information is visible in the Status web page.
 
 ```
-/cctv/recording/<file>
+GET /cctv/recording/<path>
 ```
-This returns the content of the specified recording file.
+This endpoint provides access to all current recording files.
 
 ```
-/cctv/motion/event
+GET /cctv/motion/event
+GET /cctv/motion/event?event=STRING
+GET /cctv/motion/event?file=STRING
 ```
-Report the end of a Motion event to HouseMotion. This may cause the service to scan the recording folders to search for new files.
+This endpoint is specific to HouseMotion and can be used to notify HouseMotion that new recording files are available. The last two forms are recorded as events. See the next section for more information.
+
+## Motion configuration
+
+This service recovers the following items from the Motion configuration:
+* target_dir: root path for the recording files. All files found in this directory and its subdirectories will be offered for download to HouseDvr.
+* stream_port: used to build URLs for access to Motion web interface.
+* webcontrol_port: used to build URLs for access to Motion web interface.
+* camera: used to read each camera configuration file.
+* camera_id: used to build the list of cameras handled by this service.
+
+Otherwise, for compatibility with HouseDvr, the `movie_filename` and `picture_filename` items must be set so that recording files are organized in a tree of directories: year / month / day and that all relative file paths are globally unique. One particular issue is when running Motion on multiple servers, feeding the same HouseDvr service: in that case the name of the Motion host should be part of the file name to avoid name conflicts between servers. For example:
+
+```
+text_event %Y/%m/%d/%H:%M:%S
+movie_filename %C-%{host}:%t:%v
+picture_filename %C-%{host}:%t:%v
+```
+It is recommended to configure the `on_event_end`, `on_picture_save` and `on_movie_end` items so to notify HouseMotion of the new recording: this will limit the lag between the recording creation and the download by HouseDvr. For example:
+
+```
+on_event_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?event=%C
+on_picture_save /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=$f
+on_movie_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/eve
+nt\?file=$f
+```
 
