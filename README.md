@@ -84,7 +84,6 @@ It is recommended to configure the `on_event_end`, `on_picture_save` and `on_mov
 ```
 on_event_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?event=%C
 on_picture_save /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=$f
-on_movie_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/eve
-nt\?file=$f
+on_movie_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=$f
 ```
 
