@@ -74,6 +74,7 @@ static int HouseMotionMaxSpace = 0; // Default is no automatic cleanup.
 
 static char *HouseMotionStorage = 0;
 static time_t HouseMotionChanged = 0;
+static time_t HouseMotionLastEvent = 0;
 
 struct HouseMotionMetrics {
     time_t timestamp;
@@ -89,11 +90,14 @@ static const char *housemotion_store_event (const char *method, const char *uri,
                                             const char *data, int length) {
     const char *file = echttp_parameter_get ("file");
     const char *event = echttp_parameter_get ("event");
-    if (file)
+    time_t now = time(0);
+    if (file) {
         houselog_event ("DETECTION", "cctv", "FILE", "%s", file);
-    else if (event)
+    } else if (event) {
         houselog_event ("DETECTION", "cctv", "EVENT", "%s", event);
-    HouseMotionChanged = time(0);
+        HouseMotionLastEvent = now;
+    }
+    HouseMotionChanged = now;
     return 0;
 }
 
@@ -156,6 +160,7 @@ int housemotion_store_status_recurse (char *buffer, int size,
                                       char *path, int psize, const char *sep) {
 
     int cursor = 0;
+    time_t now = time(0);
 
     DIR *dir = opendir (path);
     if (dir) {
@@ -174,12 +179,16 @@ int housemotion_store_status_recurse (char *buffer, int size,
                 struct stat filestat;
                 if (stat (path, &filestat)) continue; // Cannot access, skip.
 
+                int stable = (filestat.st_mtime < HouseMotionLastEvent);
+                if (!HouseMotionLastEvent)
+                    stable = (filestat.st_mtime < (now - 60));
                 cursor += snprintf (buffer+cursor, size-cursor,
-                                    "%s[%lld,\"%s\",%lld]",
+                                    "%s[%lld,\"%s\",%lld,%s]",
                                     sep,
                                     (long long)(filestat.st_mtime),
                                     relative,
-                                    (long long)(filestat.st_size));
+                                    (long long)(filestat.st_size),
+                                    stable?"true":"false");
                 if (cursor >= size) {
                     closedir (dir);
                     return saved;

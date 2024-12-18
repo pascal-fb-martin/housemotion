@@ -21,6 +21,32 @@ The housemotion service accepts all standard echttp and HousePortal options, plu
 * --motion-conf=FILE: the full path to the Motion configuration file.
 * --motion-clean=INTEGER: the storage usage limit (percentage) that triggers a cleanup (removal of oldest recording files).
 
+## Motion configuration
+
+This service recovers the following items from the Motion configuration:
+* target_dir: root path for the recording files. All files found in this directory and its subdirectories will be offered for download to HouseDvr.
+* stream_port: used to build URLs for access to Motion web interface.
+* webcontrol_port: used to build URLs for access to Motion web interface.
+* camera: used to read each camera configuration file.
+* camera_id: used to build the list of cameras handled by this service.
+
+Otherwise, for compatibility with HouseDvr, the `movie_filename` and `picture_filename` items must be set so that recording files are organized in a tree of directories: year / month / day and that all relative file paths are globally unique. One particular issue is when running Motion on multiple servers, feeding the same HouseDvr service: in that case the name of the Motion host should be part of the file name to avoid naming conflicts between servers. For example:
+
+```
+text_event %Y/%m/%d/%H:%M:%S
+movie_filename %C-%{host}:%t:%v
+picture_filename %C-%{host}:%t:%v
+```
+It is recommended to configure the `on_event_end`, `on_picture_save` and `on_movie_end` items so to notify HouseMotion of new recordings: this will limit the lag between the recording creation and the download by HouseDvr. For example:
+
+```
+on_event_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?event=%C
+on_picture_save /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=%f
+on_movie_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=%f
+```
+
+The on_event_end item is the one really important, as it also sets the reference time used to determine when a recording file has become _stable_. The others are optional.
+
 ## Web API
 
 ```
@@ -62,28 +88,4 @@ GET /cctv/motion/event?event=STRING
 GET /cctv/motion/event?file=STRING
 ```
 This endpoint is specific to HouseMotion and can be used to notify HouseMotion that new recording files are available. The last two forms are recorded as events. See the next section for more information.
-
-## Motion configuration
-
-This service recovers the following items from the Motion configuration:
-* target_dir: root path for the recording files. All files found in this directory and its subdirectories will be offered for download to HouseDvr.
-* stream_port: used to build URLs for access to Motion web interface.
-* webcontrol_port: used to build URLs for access to Motion web interface.
-* camera: used to read each camera configuration file.
-* camera_id: used to build the list of cameras handled by this service.
-
-Otherwise, for compatibility with HouseDvr, the `movie_filename` and `picture_filename` items must be set so that recording files are organized in a tree of directories: year / month / day and that all relative file paths are globally unique. One particular issue is when running Motion on multiple servers, feeding the same HouseDvr service: in that case the name of the Motion host should be part of the file name to avoid name conflicts between servers. For example:
-
-```
-text_event %Y/%m/%d/%H:%M:%S
-movie_filename %C-%{host}:%t:%v
-picture_filename %C-%{host}:%t:%v
-```
-It is recommended to configure the `on_event_end`, `on_picture_save` and `on_movie_end` items so to notify HouseMotion of the new recording: this will limit the lag between the recording creation and the download by HouseDvr. For example:
-
-```
-on_event_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?event=%C
-on_picture_save /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=%f
-on_movie_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=%f
-```
 
