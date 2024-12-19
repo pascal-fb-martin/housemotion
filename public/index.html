@@ -91,7 +91,7 @@ function listRecordings (data) {
    if (! data.cctv.recordings) return;
 
    data.cctv.recordings.sort (function (a, b) {
-           return a[0] - b[0];
+           return b[0] - a[0];
    });
 
    for (var i = 0; i < data.cctv.recordings.length; ++i) {
