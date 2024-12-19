@@ -3,10 +3,10 @@ The house Motion sidekick service.
 
 ## Overview
 
-This service interfaces between the HouseDvr web API and the Motion interfaces.
+This service provides [HouseDvr](https://github.com/pascal-fb-martin/housedvr) with an access to the Motion interfaces.
 
 It fulfills two main roles:
-- Report the list of camera handled by motion, and how to access them live.
+- Report the list of camera handled by Motion, and how to access them live.
 - Provides the Motion recording files to the HouseDvr services.
 
 This runs as a sidekick to Motion, on the same computer. The goal is to provide an interface to DVR services that is independent of the Motion interfaces: a CCTV service interfacing with a different security camera software should offer the same interface to DVR services.
