@@ -131,7 +131,7 @@ function listMetrics (data) {
    }
    table.appendChild(headline);
 
-   for (var i = 0; i < data.cctv.metrics.length; ++i) {
+   for (var i = data.cctv.metrics.length-1; i >= 0; --i) {
        var metrics = data.cctv.metrics[i];
        var line = document.createElement("tr");
        for (var name in metrics) {
