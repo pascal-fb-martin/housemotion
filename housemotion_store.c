@@ -180,7 +180,7 @@ int housemotion_store_status_recurse (char *buffer, int size,
                 if (stat (path, &filestat)) continue; // Cannot access, skip.
 
                 int stable = (filestat.st_mtime < HouseMotionLastEvent);
-                if (!HouseMotionLastEvent)
+                if (HouseMotionLastEvent < now - 120)
                     stable = (filestat.st_mtime < (now - 60));
                 cursor += snprintf (buffer+cursor, size-cursor,
                                     "%s[%lld,\"%s\",%lld,%s]",
