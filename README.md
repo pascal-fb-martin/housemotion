@@ -15,6 +15,17 @@ The HouseMotion service implements the CCTV web API (with additional Motion exte
 
 This service also provides an housekeeping function: if the local storage gets too full, the oldest recording files will be deleted. This approach provides enough time for multiple DVR services to upload the recordings before they disappear.
 
+## Installation
+
+This service depends on the House series environment:
+* Install git, icoutils, openssl (libssl-dev), motion.
+* configure the motion software (see later).
+* Install [echttp](https://github.com/pascal-fb-martin/echttp)
+* Install [houseportal](https://github.com/pascal-fb-martin/houseportal)
+* Clone this repository.
+* make rebuild
+* sudo make install
+
 ## Command line options
 
 The housemotion service accepts all standard echttp and HousePortal options, plus the following:
