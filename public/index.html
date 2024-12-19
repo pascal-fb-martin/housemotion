@@ -141,7 +141,7 @@ function listMetrics (data) {
           if (name === 'time')
               column.innerHTML = friendlyTime(value);
           else
-              column.innerHTML = '' + value;
+              column.innerHTML = friendlySize(value);
           line.appendChild(column);
        }
        table.appendChild(line);
