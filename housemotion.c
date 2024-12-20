@@ -81,6 +81,7 @@ static const char *housemotion_check (const char *method, const char *uri,
     snprintf (buffer, sizeof(buffer),
               "{\"host\":\"%s\",\"timestamp\":%ld,\"updated\":%lld}",
               HostName, (long)time(0), housemotion_update());
+    echttp_content_type_json ();
     return buffer;
 }
 
