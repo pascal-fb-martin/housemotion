@@ -74,7 +74,15 @@ static int HouseMotionMaxSpace = 0; // Default is no automatic cleanup.
 
 static char *HouseMotionStorage = 0;
 static time_t HouseMotionChanged = 0;
-static time_t HouseMotionLastEvent = 0;
+
+struct HouseMotionEvent {
+    time_t timestamp;
+    char   id[32];
+};
+
+#define MOTION_EVENT_DEPTH 8
+static struct HouseMotionEvent HouseMotionRecentEvents[MOTION_EVENT_DEPTH];
+static int HouseMotionEventCursor = 0;
 
 struct HouseMotionMetrics {
     time_t timestamp;
@@ -88,16 +96,33 @@ static struct HouseMotionMetrics HouseMotionMetricsLatest[MOTION_METRICS_SPAN];
 
 static const char *housemotion_store_event (const char *method, const char *uri,
                                             const char *data, int length) {
-    const char *file = echttp_parameter_get ("file");
     const char *event = echttp_parameter_get ("event");
-    time_t now = time(0);
+    if (event) {
+        time_t now = time(0);
+        houselog_event ("DETECTION", "cctv", "EVENT", "%s", event);
+        HouseMotionRecentEvents[HouseMotionEventCursor].timestamp = now;
+        snprintf (HouseMotionRecentEvents[HouseMotionEventCursor].id,
+                  sizeof(HouseMotionRecentEvents[0].id),
+                  "%s", event);
+        if (++HouseMotionEventCursor >= MOTION_EVENT_DEPTH)
+            HouseMotionEventCursor = 0;
+        HouseMotionChanged = now;
+        return 0;
+    }
+    const char *file = echttp_parameter_get ("file");
     if (file) {
         houselog_event ("DETECTION", "cctv", "FILE", "%s", file);
-    } else if (event) {
-        houselog_event ("DETECTION", "cctv", "EVENT", "%s", event);
-        HouseMotionLastEvent = now;
+        return 0;
     }
-    HouseMotionChanged = now;
+    return 0;
+}
+
+static time_t housemotion_store_matchevent (const char *name) {
+    int i;
+    for (i = MOTION_EVENT_DEPTH-1; i >= 0; --i) {
+        if (strstr (name, HouseMotionRecentEvents[i].id))
+            return HouseMotionRecentEvents[i].timestamp;
+    }
     return 0;
 }
 
@@ -152,6 +177,8 @@ void housemotion_store_friendly (char *buffer, int size, long long value) {
 }
 
 long long housemotion_store_check (void) {
+    // We report a changed timestamp whever a new event has been reported
+    // or when a Motion configuration has impacted recordings.
     if (!HouseMotionChanged) HouseMotionChanged = time(0);
     return (long long)HouseMotionChanged * 1000;
 }
@@ -179,9 +206,16 @@ int housemotion_store_status_recurse (char *buffer, int size,
                 struct stat filestat;
                 if (stat (path, &filestat)) continue; // Cannot access, skip.
 
-                int stable = (filestat.st_mtime < HouseMotionLastEvent);
-                if (HouseMotionLastEvent < now - 120)
-                    stable = (filestat.st_mtime < (now - 60));
+                // A file is considered stable if last update was a minute ago,
+                // or else if it matches a detected event (and has not changed
+                // since then--just to be safe).
+                //
+                int stable = (filestat.st_mtime < (now - 60));
+                if (! stable) {
+                    time_t eventtime = housemotion_store_matchevent (p->d_name);
+                    stable = (filestat.st_mtime <= eventtime);
+                }
+
                 cursor += snprintf (buffer+cursor, size-cursor,
                                     "%s[%lld,\"%s\",%lld,%s]",
                                     sep,
