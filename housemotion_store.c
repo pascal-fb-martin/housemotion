@@ -212,7 +212,7 @@ int housemotion_store_status_recurse (char *buffer, int size,
                 //
                 int stable = (filestat.st_mtime < (now - 60));
                 if (! stable) {
-                    time_t eventtime = housemotion_store_matchevent (p->d_name);
+                    time_t eventtime = housemotion_store_matchevent (relative);
                     stable = (filestat.st_mtime <= eventtime);
                 }
 
