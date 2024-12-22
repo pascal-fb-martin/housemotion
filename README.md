@@ -51,9 +51,9 @@ picture_filename %C-%{host}:%t:%v
 It is recommended to configure the `on_event_end`, `on_picture_save` and `on_movie_end` items so to notify HouseMotion of new recordings: this will limit the lag between the recording creation and the download by HouseDvr. For example:
 
 ```
-on_event_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?event=%C
-on_picture_save /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=%f
-on_movie_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\?file=%f
+on_event_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event?event=%C
+on_picture_save /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event?file=%f
+on_movie_end /usr/bin/wget -nd -q -O /dev/null http://localhost/cctv/motion/event\file=%f
 ```
 
 The on_event_end item is the one really important, as it also sets the reference time used to determine when a recording file has become _stable_. The others are optional.

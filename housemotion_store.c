@@ -392,6 +392,7 @@ static void housemotion_store_metrics (time_t now) {
 
     if (!HouseMotionStorage) return;
     if (now < LastStorageCheck + 10) return; // Check storage space every 10s.
+    LastStorageCheck = now;
 
     struct statvfs storage;
     if (statvfs (HouseMotionStorage, &storage)) return ;
