@@ -64,7 +64,7 @@ install-app: install-ui
 
 uninstall-app:
 	rm -f $(HROOT)/bin/housemotion
-	rm -f $(SHARE)/public/motion
+	rm -f $(SHARE)/public/cctv
 
 purge-app:
 
