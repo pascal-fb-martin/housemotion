@@ -76,7 +76,7 @@ static long long housemotion_update (void) {
 
 static const char *housemotion_check (const char *method, const char *uri,
                                       const char *data, int length) {
-    static char buffer[128];
+    static char buffer[1280];
 
     snprintf (buffer, sizeof(buffer),
               "{\"host\":\"%s\",\"timestamp\":%ld,\"updated\":%lld}",
@@ -106,9 +106,12 @@ static const char *housemotion_status (const char *method, const char *uri,
 
 static void housemotion_background (int fd, int mode) {
 
-    static time_t LastRenewal = 0;
+    static time_t LastCall = 0;
     time_t now = time(0);
+    if (LastCall >= now) return; // Process only once per second.
+    LastCall = now;
 
+    static time_t LastRenewal = 0;
     if (use_houseportal) {
         static const char *path[] = {"cctv:/cctv"};
         if (now >= LastRenewal + 60) {
@@ -131,8 +134,6 @@ static void housemotion_protect (const char *method, const char *uri) {
 }
 
 int main (int argc, const char **argv) {
-
-    const char *error;
 
     // These strange statements are to make sure that fds 0 to 2 are
     // reserved, since this application might output some errors.

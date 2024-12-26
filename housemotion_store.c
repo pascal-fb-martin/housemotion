@@ -267,7 +267,6 @@ static int housemotion_store_status_metrics (char *buffer, int size) {
 int housemotion_store_status (char *buffer, int size) {
 
     int cursor = 0;
-    const char *prefix = "";
 
     struct statvfs storage;
 
@@ -388,7 +387,6 @@ static void housemotion_store_meminfo (struct HouseMotionMetrics *metrics) {
 static void housemotion_store_metrics (time_t now) {
 
     static time_t LastStorageCheck = 0;
-    static time_t NextSensorFlush = 0;
 
     if (!HouseMotionStorage) return;
     if (now < LastStorageCheck + 10) return; // Check storage space every 10s.

@@ -35,7 +35,7 @@ clean:
 rebuild: clean all
 
 %.o: %.c
-	gcc -c -g -O -o $@ $<
+	gcc -c -Wall -g -O -o $@ $<
 
 housemotion: $(OBJS)
 	gcc -g -O -o housemotion $(OBJS) -lhouseportal -lechttp -lssl -lcrypto -lgpiod -lrt
