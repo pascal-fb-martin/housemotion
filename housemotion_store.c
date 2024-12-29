@@ -310,6 +310,7 @@ static void housemotion_store_cleanup (time_t now) {
     oldest.path[0] = 0;
     housemotion_store_oldest (&oldest, HouseMotionStorage);
     if (oldest.modified < now) {
+        houselog_event ("SERVICE", "cctv", "DELETE", "%s", oldest.path);
         unlink (oldest.path); // Delete that oldest file.
         char *s = strrchr (oldest.path, '/');
         if (s) {
