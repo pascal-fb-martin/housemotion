@@ -60,6 +60,7 @@
 #include <sys/statvfs.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <echttp.h>
 #include <echttp_static.h>
@@ -288,8 +289,11 @@ void housemotion_store_oldest (struct filetrack *oldest, const char *parent) {
         snprintf (path, sizeof(path), "%s/%s", parent, p->d_name);
         if (p->d_type == DT_REG) {
             struct stat filestat;
-            if (stat (path, &filestat)) continue; // Cannot access, skip.
-
+            if (stat (path, &filestat)) {
+                houselog_trace (HOUSE_FAILURE, "stat(2)",
+                                "%s: %s", path, strerror(errno));
+                continue; // Cannot access, skip.
+            }
             if (filestat.st_mtime < oldest->modified) {
                 snprintf (oldest->path, sizeof(oldest->path), "%s", path);
                 oldest->modified = filestat.st_mtime;
@@ -311,7 +315,10 @@ static void housemotion_store_cleanup (time_t now) {
     housemotion_store_oldest (&oldest, HouseMotionStorage);
     if (oldest.modified < now) {
         houselog_event ("SERVICE", "cctv", "DELETE", "%s", oldest.path);
-        unlink (oldest.path); // Delete that oldest file.
+        if (unlink (oldest.path)) {
+            houselog_trace (HOUSE_FAILURE, "unlink(2)",
+                            "%s: %s", oldest.path, strerror(errno));
+        }
         char *s = strrchr (oldest.path, '/');
         if (s) {
             *s = 0;
