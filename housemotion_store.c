@@ -86,26 +86,56 @@ static struct HouseMotionEvent HouseMotionRecentEvents[MOTION_EVENT_DEPTH];
 static int HouseMotionEventCursor = 0;
 
 
-static const char *housemotion_store_event (const char *method, const char *uri,
-                                            const char *data, int length) {
+static const char *housemotion_store_record (const char *stage,
+                                             const char *data, int length) {
+
     const char *event = echttp_parameter_get ("event");
+    const char *cam = echttp_parameter_get ("camera");
+    const char *cat = "CAMERA";
+    if (!cam) {
+        cat = "DETECTION";
+        cam = "cctv";
+    }
     if (event) {
-        time_t now = time(0);
-        houselog_event ("DETECTION", "cctv", "EVENT", "%s", event);
-        HouseMotionRecentEvents[HouseMotionEventCursor].timestamp = now;
-        snprintf (HouseMotionRecentEvents[HouseMotionEventCursor].id,
-                  sizeof(HouseMotionRecentEvents[0].id),
-                  "%s", event);
-        if (++HouseMotionEventCursor >= MOTION_EVENT_DEPTH)
-            HouseMotionEventCursor = 0;
-        HouseMotionChanged = now;
-        return 0;
+        houselog_event (cat, cam, stage, "%s", event);
+        return event;
     }
     const char *file = echttp_parameter_get ("file");
     if (file) {
-        houselog_event ("DETECTION", "cctv", "FILE", "%s", file);
-        return 0;
+        houselog_event (cat, cam, "FILE", "%s", file);
     }
+    return 0;
+}
+
+static void housemotion_store_complete (const char *event) {
+
+    time_t now = time(0);
+    HouseMotionRecentEvents[HouseMotionEventCursor].timestamp = now;
+    snprintf (HouseMotionRecentEvents[HouseMotionEventCursor].id,
+              sizeof(HouseMotionRecentEvents[0].id),
+              "%s", event);
+    if (++HouseMotionEventCursor >= MOTION_EVENT_DEPTH)
+        HouseMotionEventCursor = 0;
+    HouseMotionChanged = now;
+}
+
+static const char *housemotion_store_start (const char *method, const char *uri,
+                                            const char *data, int length) {
+    housemotion_store_record ("START", data, length);
+    return 0;
+}
+
+static const char *housemotion_store_end (const char *method, const char *uri,
+                                            const char *data, int length) {
+    const char *event = housemotion_store_record ("END", data, length);
+    if (event) housemotion_store_complete (event);
+    return 0;
+}
+
+static const char *housemotion_store_event (const char *method, const char *uri,
+                                            const char *data, int length) {
+    const char *event = housemotion_store_record ("EVENT", data, length);
+    if (event) housemotion_store_complete (event);
     return 0;
 }
 
@@ -130,6 +160,8 @@ void housemotion_store_initialize (int argc, const char **argv) {
         HouseMotionMaxSpace = atoi(max);
     }
     echttp_route_uri ("/cctv/motion/event", housemotion_store_event);
+    echttp_route_uri ("/cctv/motion/event/end", housemotion_store_end);
+    echttp_route_uri ("/cctv/motion/event/start", housemotion_store_start);
 }
 
 // Calculate storage space information (total, free, %used).
