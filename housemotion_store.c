@@ -97,7 +97,7 @@ static const char *housemotion_store_record (const char *stage,
         cam = "cctv";
     }
     if (event) {
-        houselog_event (cat, cam, stage, "%s", event);
+        houselog_event (cat, cam, stage, "EVENT %s", event);
         return event;
     }
     const char *file = echttp_parameter_get ("file");
