@@ -6,6 +6,7 @@ The house Motion sidekick service.
 This service provides [HouseDvr](https://github.com/pascal-fb-martin/housedvr) with an access to the Motion interfaces.
 
 It fulfills two main roles:
+
 - Report the list of camera handled by Motion, and how to access them live.
 - Provides the Motion recording files to the HouseDvr services.
 
@@ -18,6 +19,7 @@ This service also provides an housekeeping function: if the local storage gets t
 ## Installation
 
 This service depends on the House series environment:
+
 * Install git, icoutils, openssl (libssl-dev), motion.
 * configure the motion software (see later).
 * Install [echttp](https://github.com/pascal-fb-martin/echttp)
@@ -29,12 +31,14 @@ This service depends on the House series environment:
 ## Command line options
 
 The housemotion service accepts all standard echttp and HousePortal options, plus the following:
+
 * --motion-conf=FILE: the full path to the Motion configuration file.
 * --motion-clean=INTEGER: the storage usage limit (percentage) that triggers a cleanup (removal of oldest recording files).
 
 ## Motion configuration
 
 This service recovers the following items from the Motion configuration:
+
 * target_dir: root path for the recording files. All files found in this directory and its subdirectories will be offered for download to HouseDvr.
 * stream_port: used to build URLs for access to Motion web interface.
 * webcontrol_port: used to build URLs for access to Motion web interface.
@@ -76,6 +80,7 @@ GET /cctv/check
 ```
 
 This endpoint is a low overhead method for polling for changes. The returned content is a JSON object defined as follows:
+
 * host: the name of the server running this service.
 * proxy: the name of the server used for redirection (typically the same as host).
 * timestamp: the time of the request/response.
@@ -85,6 +90,7 @@ This endpoint is a low overhead method for polling for changes. The returned con
 GET /cctv/status
 ```
 This endpoint returns a complete status of the service, as a JSON object defined as follows:
+
 * host: the name of the server running this service.
 * proxy: the name of the server used for redirection (typically the same as host).
 * timestamp: the time of the request/response.
