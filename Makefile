@@ -16,10 +16,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor,
 # Boston, MA  02110-1301, USA.
+#
+# WARNING
+#
+# This Makefile depends on echttp and houseportal (dev) being installed.
+
+prefix=/usr/local
+SHARE=$(prefix)/share/house
+
+INSTALL=/usr/bin/install
 
 HAPP=housemotion
-HROOT=/usr/local
-SHARE=$(HROOT)/share/house
 STORE=/videos
 
 # Application build. --------------------------------------------
@@ -38,38 +45,30 @@ rebuild: clean all
 	gcc -c -Wall -g -O -o $@ $<
 
 housemotion: $(OBJS)
-	gcc -g -O -o housemotion $(OBJS) -lhouseportal -lechttp -lssl -lcrypto -lgpiod -lrt
+	gcc -g -O -o housemotion $(OBJS) -lhouseportal -lechttp -lssl -lcrypto -lgpiod -lmagic -lrt
 
 # Distribution agnostic file installation -----------------------
 
-install-ui:
-	mkdir -p $(SHARE)/public/cctv
-	chmod 755 $(SHARE) $(SHARE)/public $(SHARE)/public/cctv
-	cp public/* $(SHARE)/public/cctv
-	chown root:root $(SHARE)/public/cctv/*
-	chmod 644 $(SHARE)/public/cctv/*
+install-ui: install-preamble
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(SHARE)/public/cctv
+	$(INSTALL) -m 0644 public/* $(DESTDIR)$(SHARE)/public/cctv
 
 install-app: install-ui
-	grep -q '^motion:' /etc/passwd || useradd -r motion -s /usr/sbin/nologin -d /var/lib/house
-	mkdir -p $(STORE)
-	chown -R motion $(STORE)
-	mkdir -p $(HROOT)/bin
-	mkdir -p /var/lib/house
-	mkdir -p /etc/house
-	rm -f $(HROOT)/bin/housemotion
-	cp housemotion $(HROOT)/bin
-	chown root:root $(HROOT)/bin/housemotion
-	chmod 755 $(HROOT)/bin/housemotion
-	touch /etc/default/housemotion
+	if [ "x$(DESTDIR)" = "x" ] ; then grep -q '^motion:' /etc/passwd || useradd -r motion -s /usr/sbin/nologin -d /var/lib/house ; fi
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(STORE)
+	if [ "x$(DESTDIR)" = "x" ] ; then chown -R motion $(DESTDIR)$(STORE) ; fi
+	$(INSTALL) -m 0755 -s housemotion $(DESTDIR)$(prefix)/bin
+	touch $(DESTDIR)/etc/default/housemotion
 
 uninstall-app:
-	rm -f $(HROOT)/bin/housemotion
-	rm -f $(SHARE)/public/cctv
+	rm -f $(DESTDIR)$(prefix)/bin/housemotion
+	rm -f $(DESTDIR)$(SHARE)/public/cctv
 
 purge-app:
 
 purge-config:
-	rm -rf /etc/house/motion.config /etc/default/housemotion
+	rm -f $(DESTDIR)/etc/house/motion.config
+	tm -f $(DESTDIR)/etc/default/housemotion
 
 # System installation. ------------------------------------------
 
