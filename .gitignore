@@ -52,6 +52,6 @@ Mkfile.old
 dkms.conf
 
 # House conventions
-donotcommit
 build
-
+donotcommit
+housemotion
