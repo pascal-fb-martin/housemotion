@@ -27,6 +27,7 @@ SHARE=$(prefix)/share/house
 INSTALL=/usr/bin/install
 
 HAPP=housemotion
+HCAT=automation
 STORE=/videos
 
 # Application build. --------------------------------------------
