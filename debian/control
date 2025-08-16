@@ -7,7 +7,7 @@ Homepage: https://github.com/pascal-fb-martin/housemotion
 Standard-Version: 4.7.0
 Package: housemotion
 Architecture: {{arch}}
-Depends: 
+Depends: houseportal
 Description: A House service that interfaces motion and HouseDVR
  HouseMotion is part of the House suite of web services.
  .
