@@ -65,6 +65,7 @@
 #include <echttp.h>
 #include <echttp_static.h>
 #include <echttp_json.h>
+#include <echttp_libc.h>
 
 #include "houselog.h"
 #include "housemotion_store.h"
@@ -111,9 +112,9 @@ static void housemotion_store_complete (const char *event) {
 
     time_t now = time(0);
     HouseMotionRecentEvents[HouseMotionEventCursor].timestamp = now;
-    snprintf (HouseMotionRecentEvents[HouseMotionEventCursor].id,
-              sizeof(HouseMotionRecentEvents[0].id),
-              "%s", event);
+    strtcpy (HouseMotionRecentEvents[HouseMotionEventCursor].id,
+             event,
+             sizeof(HouseMotionRecentEvents[0].id));
     if (++HouseMotionEventCursor >= MOTION_EVENT_DEPTH)
         HouseMotionEventCursor = 0;
     HouseMotionChanged = now;
@@ -225,7 +226,7 @@ int housemotion_store_status_recurse (char *buffer, int size,
         for (p = readdir(dir); p; p = readdir(dir)) {
             int saved = cursor;
             if (p->d_name[0] == '.') continue;
-            snprintf (base, basesize, "%s", p->d_name);
+            strtcpy (base, p->d_name, basesize);
             if (p->d_type == DT_REG) {
                 struct stat filestat;
                 if (stat (path, &filestat)) continue; // Cannot access, skip.
@@ -291,7 +292,7 @@ int housemotion_store_status (char *buffer, int size) {
     cursor += snprintf (buffer+cursor, size-cursor, ",\"recordings\":[");
     if (cursor >= size) goto overflow;
     char path[1024];
-    snprintf (path, sizeof(path), "%s", HouseMotionStorage);
+    strtcpy (path, HouseMotionStorage, sizeof(path));
     cursor += housemotion_store_status_recurse
                   (buffer+cursor, size-cursor, path, sizeof(path), "");
     cursor += snprintf (buffer+cursor, size-cursor, "]");
@@ -327,7 +328,7 @@ void housemotion_store_oldest (struct filetrack *oldest, const char *parent) {
                 continue; // Cannot access, skip.
             }
             if (filestat.st_mtime < oldest->modified) {
-                snprintf (oldest->path, sizeof(oldest->path), "%s", path);
+                strtcpy (oldest->path, path, sizeof(oldest->path));
                 oldest->modified = filestat.st_mtime;
             }
         } else if (p->d_type == DT_DIR) {
