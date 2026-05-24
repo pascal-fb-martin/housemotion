@@ -142,17 +142,18 @@ window.onload = function() {
 <title>CCTV Status</title>
 </head>
 <body>
-   <header>
+   <nav>
    <table>
    <tr>
    <td><span>Status</span></td>
    <td><a href="/cctv/events.html">Events</a></td>
    </tr>
    </table>
-   </header>
-   <section>
+   </nav>
+   <main>
+   <article>
    <center>
-   <p>
+   <section>
    <h1>Cameras</h1>
    <table class="housewidetable cameras" border="0">
       <tr>
@@ -160,10 +161,8 @@ window.onload = function() {
          <th width="50%">URL</th>
       </tr>
    </table>
-   </p>
-   <br>
-   <br>
-   <p>
+   </section>
+   <section>
    <h1>Storage</h1>
    <table class="housewidetable storage" border="0">
       <tr>
@@ -173,10 +172,8 @@ window.onload = function() {
          <th width="10%">AVAILABLE</th>
       </tr>
    </table>
-   </p>
-   <br>
-   <br>
-   <p>
+   </section>
+   <section>
    <h1>Recordings</h1>
    <table class="housewidetable recordings" border="0">
       <tr>
@@ -185,9 +182,10 @@ window.onload = function() {
          <th width="10%">SIZE</th>
       </tr>
    </table>
-   </p>
-   </center>
    </section>
+   </center>
+   </article>
+   </main>
 </body>
 </html>
 
